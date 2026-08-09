@@ -295,4 +295,22 @@ if not df_all.empty:
     )
 else:
   st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
+        # --- STATISTIK SIGNAL DI BAGIAN PALING BAWAH ---
+    st.markdown("---")
+    st.subheader("📊 Statistik Signal Frequency")
+    
+    total_trades = len(df)
+    profit_trades = len(df[df["pnl"] > 0])
+    loss_trades = len(df[df["pnl"] < 0])
+    
+    # Hitung rasio untuk progress bar
+    p_profit = (profit_trades / total_trades) if total_trades > 0 else 0
+    p_loss = (loss_trades / total_trades) if total_trades > 0 else 0
+    
+    st.write(f"**Profit / Settled:** {profit_trades} dari {total_trades} trade")
+    st.progress(p_profit)
+    
+    st.write(f"**Loss / Settled:** {loss_trades} dari {total_trades} trade")
+    st.progress(p_loss)
+
       
