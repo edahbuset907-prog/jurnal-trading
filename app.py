@@ -194,13 +194,60 @@ if not df.empty:
         st.rerun()
 else:
     st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
-    # Tambahkan ini di bawah bagian df = pd.read_sql_query(...)
-st.sidebar.markdown("---")
-filter_instrumen = st.sidebar.multiselect(
-    "Filter Instrumen", 
-    options=df["instrumen"].unique(),
-    default=df["instrumen"].unique()
-)
-df = df[df["instrumen"].isin(filter_instrumen)]
+    # --- RINGKASAN KINERJA (DASHBOARD) ---
+df_all = pd.read_sql_query("SELECT * FROM trades", conn)
 
-                
+if not df_all.empty:
+    # Sidebar Filter
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🔍 Filter Data")
+    instrumen_list = df_all["instrumen"].unique().tolist()
+    selected_instrumen = st.sidebar.multiselect(
+        "Pilih Instrumen", 
+        options=instrumen_list, 
+        default=instrumen_list
+    )
+
+    # Terapkan Filter
+    df = df_all[df_all["instrumen"].isin(selected_instrumen)]
+
+    if not df.empty:
+        total_pnl = df["pnl"].sum()
+        win_trades = len(df[df["pnl"] > 0])
+        loss_trades = len(df[df["pnl"] < 0])
+        total_trades = len(df)
+        win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
+        persen_pertumbuhan = (total_pnl / modal_awal) * 100
+
+        # Tampilan Metrik
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total PnL", f"${total_pnl:,.2f}", delta=f"{persen_pertumbuhan:+.1f}%")
+        col2.metric("Total Trade", total_trades)
+        col3.metric("Win Rate", f"{win_rate:.1f}%")
+        col4.metric("Win / Loss", f"{win_trades} / {loss_trades}")
+
+        st.markdown("---")
+
+        # Grafik
+        st.subheader("📊 Grafik Performa")
+        df_chart = df.sort_values(by="id", ascending=True).reset_index(drop=True)
+        df_chart["Kumulatif PnL"] = df_chart["pnl"].cumsum()
+        st.line_chart(df_chart["Kumulatif PnL"])
+
+        st.markdown("---")
+
+        # Tabel & Download
+        st.subheader("📋 Riwayat Trade")
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Download CSV", csv, "jurnal.csv", "text/csv")
+        st.dataframe(df.sort_values(by="id", ascending=False), use_container_width=True)
+
+        if st.button("Hapus Semua Data"):
+            cursor.execute("DELETE FROM trades")
+            conn.commit()
+            st.rerun()
+    else:
+        st.warning("Data untuk instrumen yang dipilih kosong.")
+else:
+    st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
+    
