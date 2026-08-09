@@ -162,6 +162,24 @@ if not df.empty:
     # Menampilkan grafik garis interaktif bawaan Streamlit
     st.line_chart(df_chart.set_index("id")["Cumulative_PnL"])
     st.markdown("---")
+    # --- FILTER TANGGAL ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("📅 Filter Tanggal")
+df_all = pd.read_sql_query("SELECT * FROM trades", conn)
+
+if not df_all.empty and "tanggal" in df_all.columns:
+    # Mengubah kolom tanggal menjadi format datetime
+    df_all["tanggal"] = pd.to_datetime(df_all["tanggal"])
+    min_date = df_all["tanggal"].min().date()
+    max_date = df_all["tanggal"].max().date()
+    
+    start_date = st.sidebar.date_input("Dari Tanggal", min_date, min_value=min_date, max_value=max_date)
+    end_date = st.sidebar.date_input("Sampai Tanggal", max_date, min_value=min_date, max_value=max_date)
+    
+    # Filter data berdasarkan tanggal yang dipilih
+    df = df_all[(df_all["tanggal"].dt.date >= start_date) & (df_all["tanggal"].dt.date <= end_date)]
+else:
+    df = df_all
     
     
     
