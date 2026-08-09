@@ -16,7 +16,7 @@ cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS trades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tanggal DATE,
+        tanggal TEXT,
         tipe TEXT,
         lot REAL,
         entry REAL,
@@ -34,6 +34,60 @@ conn.commit()
 
 st.title("📈 Jurnal Trading XAUUSD (Emas)")
 
+# Sidebar: Form Input Trade
+st.sidebar.header("📝 Input Trade Baru")
+with st.sidebar.form("trade_form", clear_on_submit=True):
+  tanggal_input = st.date_input("Tanggal")
+  tipe = st.selectbox("Tipe Posisi", ["BUY", "SELL"])
+  lot = st.number_input(
+      "Lot Size", min_value=0.01, step=0.01, value=0.10, format="%.2f"
+  )
+  entry = st.number_input("Harga Entry", min_value=0.0, step=0.1, value=2000.0)
+  exit_price = st.number_input(
+      "Harga Exit", min_value=0.0, step=0.1, value=2010.0
+  )
+  sl = st.number_input("Stop Loss (SL)", min_value=0.0, step=0.1, value=1990.0)
+  tp = st.number_input(
+      "Take Profit (TP)", min_value=0.0, step=0.1, value=2020.0
+  )
+  catatan = st.text_area("Catatan / Alasan Entry")
+  sesi_input = st.selectbox(
+      "Sesi Market", ["Asian Session", "London Session", "New York Session"]
+  )
+
+  submitted = st.form_submit_button("Simpan Trade")
+
+if submitted:
+  # Kalkulasi PnL & Pips XAUUSD
+  if tipe == "BUY":
+    pips = (exit_price - entry) * 10
+    pnl = (exit_price - entry) * lot * 100
+  else:
+    pips = (entry - exit_price) * 10
+    pnl = (entry - exit_price) * lot * 100
+
+  cursor.execute(
+      """
+        INSERT INTO trades (tanggal, tipe, lot, entry, exit, sl, tp, pnl, pips, catatan, sesi) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+      (
+          str(tanggal_input),
+          tipe,
+          lot,
+          entry,
+          exit_price,
+          sl,
+          tp,
+          pnl,
+          pips,
+          catatan,
+          sesi_input,
+      ),
+  )
+  conn.commit()
+  st.success("Trade berhasil disimpan!")
+  st.rerun()
 
 # --- TAMPILAN DATA & FILTER ---
 df_all = pd.read_sql_query("SELECT * FROM trades", conn)
@@ -45,8 +99,12 @@ if not df_all.empty and "tanggal" in df_all.columns:
   min_date = df_all["tanggal"].min().date()
   max_date = df_all["tanggal"].max().date()
 
-  start_date = st.sidebar.date_input("Dari Tanggal", min_date, min_value=min_date, max_value=max_date)
-  end_date = st.sidebar.date_input("Sampai Tanggal", max_date, min_value=min_date, max_value=max_date)
+  start_date = st.sidebar.date_input(
+      "Dari Tanggal", min_date, min_value=min_date, max_value=max_date
+  )
+  end_date = st.sidebar.date_input(
+      "Sampai Tanggal", max_date, min_value=min_date, max_value=max_date
+  )
 
   df = df_all[
       (df_all["tanggal"].dt.date >= start_date)
