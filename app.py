@@ -180,4 +180,8 @@ if not df_all.empty and "tanggal" in df_all.columns:
     df = df_all[(df_all["tanggal"].dt.date >= start_date) & (df_all["tanggal"].dt.date <= end_date)]
 else:
     df = df_all
-    
+    # Tambahkan pilihan Sesi Market manual di form sidebar
+sesi = st.sidebar.selectbox(
+    "Sesi Market", ["Asian Session", "London Session", "New York Session"]
+)
+
