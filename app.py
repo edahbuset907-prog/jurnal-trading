@@ -152,23 +152,4 @@ if not df.empty:
     st.dataframe(sesi_summary, use_container_width=True)
 else:
   st.info("Belum ada data trade yang tersimpan. Silakan input melalui sidebar.")
-    import pandas as pd
-import streamlit as st
-
-# (Asumsi data jurnal kamu disimpan di session_state atau dataframe bernama df)
-# Contoh konversi data ke CSV untuk di-download:
-
-if "riwayat_trading" in st.session_state:
-  df_download = pd.DataFrame(st.session_state.riwayat_trading)
-
-  # Mengubah dataframe menjadi format CSV
-  csv_data = df_download.to_csv(index=False).encode("utf-8")
-
-  # Tombol Download di UI
-  st.download_button(
-      label="📥 Download Jurnal (CSV)",
-      data=csv_data,
-      file_name="jurnal_trading.csv",
-      mime="text/csv",
-  )
-
+    
