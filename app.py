@@ -169,21 +169,3 @@ except Exception as e:
     st.dataframe(sesi_summary, use_container_width=True)
 else:
   st.info("Belum ada data trade yang tersimpan. Silakan input melalui sidebar.")
-# --- TOMBOL DOWNLOAD BACKUP EXCEL ---
-st.markdown("---")
-st.subheader("📥 Backup Data Jurnal")
-try:
-    df_backup = pd.read_sql_query("SELECT * FROM trades", conn)
-    if not df_backup.empty:
-        csv_data = df_backup.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Download Data ke Excel/CSV",
-            data=csv_data,
-            file_name="jurnal_trading_backup.csv",
-            mime="text/csv",
-        )
-    else:
-        st.info("Belum ada data untuk di-download.")
-except Exception as e:
-    st.info("Tombol download akan muncul setelah ada data tersimpan.")
-    
