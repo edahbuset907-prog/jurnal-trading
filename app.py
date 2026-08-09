@@ -152,4 +152,121 @@ if not df.empty:
     st.dataframe(sesi_summary, use_container_width=True)
 else:
   st.info("Belum ada data trade yang tersimpan. Silakan input melalui sidebar.")
+    import pandas as pd
+import streamlit as st
+
+# --- 1. SETUP HALAMAN ---
+st.set_page_config(
+    page_title="Pro Trader Journal", page_icon="⚡", layout="wide"
+)
+
+# --- 2. CUSTOM CSS (UI KELAS ATAS) ---
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .stApp {
+        background-color: #0b0f19;
+        color: #f3f4f6;
+    }
+    
+    div.stButton > button {
+        border-radius: 10px;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 10px 20px;
+        width: 100%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- 3. INISIALISASI SESSION STATE ---
+if "riwayat_trading" not in st.session_state:
+  st.session_state.riwayat_trading = [
+      {
+          "Tanggal": "08/08",
+          "Pair": "XAUUSD",
+          "Type": "BUY",
+          "Lot": 0.20,
+          "Hasil ($)": 240.0,
+          "Status": "WIN",
+      },
+      {
+          "Tanggal": "08/08",
+          "Pair": "EURUSD",
+          "Type": "SELL",
+          "Lot": 0.50,
+          "Hasil ($)": -85.0,
+          "Status": "LOSS",
+      },
+  ]
+
+# --- 4. HEADER UTAMA ---
+st.markdown(
+    "<h1 style='text-align: center; color: #ffffff;'>⚡ PRO TRADER JOURNAL</h1>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='text-align: center; color: #9ca3af;'>Sistem pencatatan"
+    " trading profesional dengan fitur Download.</p>",
+    unsafe_allow_html=True,
+)
+st.markdown("---")
+
+# --- 5. FORM INPUT & TABEL ---
+col_form, col_table = st.columns([1, 2])
+
+with col_form:
+  st.subheader("📝 Catat Posisi Baru")
+  with st.form("form_trade_session", clear_on_submit=True):
+    tanggal = st.text_input("Tanggal", value="09/08")
+    pair = st.selectbox("Pair", ["XAUUSD", "EURUSD", "GBPUSD", "BTCUSD"])
+    action = st.radio("Action", ["BUY", "SELL"], horizontal=True)
+    lot = st.number_input("Lot Size", min_value=0.01, value=0.10, step=0.01)
+    hasil = st.number_input(
+        "Hasil ($)", value=0.0, step=1.0, format="%.2f"
+    )
+
+    submitted = st.form_submit_button("Simpan ke Jurnal")
+    if submitted:
+      status = "WIN" if hasil >= 0 else "LOSS"
+      data_baru = {
+          "Tanggal": tanggal,
+          "Pair": pair,
+          "Type": action,
+          "Lot": lot,
+          "Hasil ($)": hasil,
+          "Status": status,
+      }
+      st.session_state.riwayat_trading.insert(0, data_baru)
+      st.success("Trade berhasil ditambahkan!")
+      st.rerun()
+
+with col_table:
+  st.subheader("📊 Riwayat Transaksi")
+
+  if st.session_state.riwayat_trading:
+    df = pd.DataFrame(st.session_state.riwayat_trading)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+    # Tombol Download ditaruh di bawah tabel
+    csv_data = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 Download Jurnal (CSV)",
+        data=csv_data,
+        file_name="jurnal_trading.csv",
+        mime="text/csv",
+    )
+  else:
+    st.info("Belum ada data trading yang dicatat.")
+      
     
