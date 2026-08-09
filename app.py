@@ -1,4 +1,3 @@
-import io
 import sqlite3
 import pandas as pd
 import streamlit as st
@@ -31,12 +30,11 @@ cursor.execute(
     )
 """
 )
-# Migrasi aman jika tabel sudah ada sebelumnya tanpa kolom 'sesi'
 try:
     cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
     conn.commit()
 except sqlite3.OperationalError:
-    pass  # Kolom sudah ada
+    pass
 
 st.title("📈 Jurnal Trading XAUUSD (Emas)")
 
@@ -66,7 +64,6 @@ with st.sidebar.form("trade_form", clear_on_submit=True):
     submitted = st.form_submit_button("Simpan Trade")
 
     if submitted:
-        # Kalkulasi PnL & Pips XAUUSD (1 Lot = $100 per $1 pergerakan)
         if tipe == "BUY":
             pips = (exit_price - entry) * 10
             pnl = (exit_price - entry) * lot * 100
@@ -108,12 +105,7 @@ if not df.empty:
 
     # Tampilan Metrik Utama
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric(
-        "Total PnL",
-        f"${total_pnl:,.2f}",
-        delta=f"{total_pnl:,.2f}",
-        delta_color="normal",
-    )
+    col1.metric("Total PnL", f"${total_pnl:,.2f}")
     col2.metric("Total Trade", total_trades)
     col3.metric("Win Rate", f"{win_rate:.1f}%")
     col4.metric("Win / Loss", f"{win_trades} / {loss_trades}")
@@ -128,20 +120,16 @@ if not df.empty:
 
     st.markdown("---")
 
-    # Tabel Riwayat Trade & Tombol Ekspor Excel
+    # Tabel Riwayat Trade & Tombol Download CSV
     st.subheader("📋 Riwayat Trade")
 
-    # Tombol Ekspor ke Excel menggunakan BytesIO
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Jurnal Trading")
-    excel_data = output.getvalue()
-
+    # Menggunakan CSV agar tidak butuh modul openpyxl tambahan
+    csv_data = df.to_csv(index=False).encode("utf-8")
     st.download_button(
-        label="📥 Download Data ke Excel (.xlsx)",
-        data=excel_data,
-        file_name="jurnal_trading_xauusd.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        label="📥 Download Data ke CSV (Bisa dibuka di Excel)",
+        data=csv_data,
+        file_name="jurnal_trading_xauusd.csv",
+        mime="text/csv",
     )
 
     # Menampilkan Tabel Data
