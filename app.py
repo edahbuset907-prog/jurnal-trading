@@ -228,34 +228,4 @@ except:
 df_sesi = pd.read_sql_query("SELECT * FROM trades", conn)
 
 if not df_sesi.empty:
-    # --- REKAP SESI MARKET FINAL ---
-try:
-  cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
-  conn.commit()
-except:
-  pass
-
-df_sesi = pd.read_sql_query("SELECT * FROM trades", conn)
-if not df_sesi.empty and "sesi" in df_sesi.columns:
-  st.markdown("---")
-  st.subheader("🌐 Performa Berdasarkan Sesi Market")
-  sesi_summary = (
-      df_sesi.groupby("sesi")
-      .agg(
-          Total_Trade=("pnl", "count"),
-          Total_PnL=("pnl", "sum"),
-          Win_Rate=(
-              "pnl",
-              lambda x: (
-                  (sum(x > 0) / len(x)) * 100 if len(x) > 0 else 0
-              ),
-          ),
-      )
-      .reset_index()
-  )
-  st.dataframe(sesi_summary, use_container_width=True)
-    sesi = st.sidebar.selectbox(
-    "Sesi Market", ["Asian Session", "London Session", "New York Session"]
-    )
-    
     
