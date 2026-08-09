@@ -151,6 +151,19 @@ if not df.empty:
     col4.metric("Win / Loss", f"{win_trades} / {loss_trades}")
     
     st.markdown("---")
+    # --- GRAFIK PERFORMA PNL ---
+if not df.empty:
+    st.subheader("📊 Grafik Performa PnL")
+    # Membuat kolom PnL kumulatif untuk grafik garis
+    df_chart = df.copy()
+    df_chart = df_chart.sort_values(by="id", ascending=True)
+    df_chart["Cumulative_PnL"] = df_chart["pnl"].cumsum()
+    
+    # Menampilkan grafik garis interaktif bawaan Streamlit
+    st.line_chart(df_chart.set_index("id")["Cumulative_PnL"])
+    st.markdown("---")
+    
+    
     
     
     
