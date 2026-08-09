@@ -1,3 +1,5 @@
+import calendar
+from datetime import datetime
 import sqlite3
 import pandas as pd
 import streamlit as st
@@ -33,16 +35,16 @@ cursor.execute(
 )
 # Migrasi aman jika tabel lama belum memiliki kolom instrumen/sesi
 try:
-    cursor.execute("ALTER TABLE trades ADD COLUMN instrumen TEXT")
-    conn.commit()
+  cursor.execute("ALTER TABLE trades ADD COLUMN instrumen TEXT")
+  conn.commit()
 except sqlite3.OperationalError:
-    pass
+  pass
 
 try:
-    cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
-    conn.commit()
+  cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
+  conn.commit()
 except sqlite3.OperationalError:
-    pass
+  pass
 
 st.title("📈 Jurnal Trading (XAUUSD & NASDAQ)")
 
@@ -54,87 +56,92 @@ modal_awal = st.sidebar.number_input(
 
 st.sidebar.header("📝 Input Trade Baru")
 with st.sidebar.form("trade_form", clear_on_submit=True):
-    tanggal = st.date_input("Tanggal")
-    instrumen = st.selectbox(
-        "Pilih Instrumen", ["XAUUSD (Gold)", "NASDAQ (US100)"]
-    )
-    sesi = st.selectbox(
-        "Sesi Trading", ["London", "New York", "Asia", "London / NY Overlap"]
-    )
-    tipe = st.selectbox("Tipe Posisi", ["BUY", "SELL"])
+  tanggal = st.date_input("Tanggal", value=datetime.today())
+  instrumen = st.selectbox(
+      "Pilih Instrumen", ["XAUUSD (Gold)", "NASDAQ (US100)"]
+  )
+  sesi = st.selectbox(
+      "Sesi Trading", ["London", "New York", "Asia", "London / NY Overlap"]
+  )
+  tipe = st.selectbox("Tipe Posisi", ["BUY", "SELL"])
 
-    # Nilai default lot dan harga disesuaikan berdasarkan instrumen yang dipilih
-    lot = st.number_input(
-        "Lot Size", min_value=0.01, step=0.01, value=0.10, format="%.2f"
-    )
+  lot = st.number_input(
+      "Lot Size", min_value=0.01, step=0.01, value=0.10, format="%.2f"
+  )
 
-    # Petunjuk input harga di form
-    st.markdown(
-        "<small><i>*XAUUSD: Entry misal 2000.0 | NASDAQ: Entry misal 18000.0</i></small>",
-        unsafe_allow_html=True,
-    )
-    entry = st.number_input(
-        "Harga Entry", min_value=0.0, step=0.1, value=2000.0
-    )
-    exit_price = st.number_input(
-        "Harga Exit", min_value=0.0, step=0.1, value=2010.0
-    )
-    sl = st.number_input(
-        "Stop Loss (SL)", min_value=0.0, step=0.1, value=1990.0
-    )
-    tp = st.number_input(
-        "Take Profit (TP)", min_value=0.0, step=0.1, value=2020.0
-    )
-    catatan = st.text_area("Catatan / Alasan Entry")
+  st.markdown(
+      "<small><i>*XAUUSD: Entry misal 2000.0 | NASDAQ: Entry misal"
+      " 18000.0</i></small>",
+      unsafe_allow_html=True,
+  )
+  entry = st.number_input("Harga Entry", min_value=0.0, step=0.1, value=2000.0)
+  exit_price = st.number_input(
+      "Harga Exit", min_value=0.0, step=0.1, value=2010.0
+  )
+  sl = st.number_input("Stop Loss (SL)", min_value=0.0, step=0.1, value=1990.0)
+  tp = st.number_input("Take Profit (TP)", min_value=0.0, step=0.1, value=2020.0)
+  catatan = st.text_area("Catatan / Alasan Entry")
 
-    submitted = st.form_submit_button("Simpan Trade")
+  submitted = st.form_submit_button("Simpan Trade")
 
-    if submitted:
-        # Kalkulasi PnL & Pips berdasarkan instrumen
-        if "XAUUSD" in instrumen:
-            # XAUUSD: 1 Lot = $100 per $1 pergerakan
-            if tipe == "BUY":
-                pips = (exit_price - entry) * 10
-                pnl = (exit_price - entry) * lot * 100
-            else:
-                pips = (entry - exit_price) * 10
-                pnl = (entry - exit_price) * lot * 100
-        else:
-            # NASDAQ (US100): Biasanya pergerakan $1 indeks = $20 per lot (tergantung broker, asumsi standar contract size $20/poin per lot)
-            if tipe == "BUY":
-                pips = exit_price - entry
-                pnl = (exit_price - entry) * lot * 20
-            else:
-                pips = entry - exit_price
-                pnl = (entry - exit_price) * lot * 20
+  if submitted:
+    if "XAUUSD" in instrumen:
+      if tipe == "BUY":
+        pips = (exit_price - entry) * 10
+        pnl = (exit_price - entry) * lot * 100
+      else:
+        pips = (entry - exit_price) * 10
+        pnl = (entry - exit_price) * lot * 100
+    else:
+      if tipe == "BUY":
+        pips = exit_price - entry
+        pnl = (exit_price - entry) * lot * 20
+      else:
+        pips = entry - exit_price
+        pnl = (entry - exit_price) * lot * 20
 
-        cursor.execute(
-            """
-            INSERT INTO trades (tanggal, instrumen, sesi, tipe, lot, entry, exit, sl, tp, pnl, pips, catatan)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                tanggal,
-                instrumen,
-                sesi,
-                tipe,
-                lot,
-                entry,
-                exit_price,
-                sl,
-                tp,
-                round(pnl, 2),
-                round(pips, 1),
-                catatan,
-            ),
-        )
-        conn.commit()
-        st.sidebar.success("Trade berhasil disimpan!")
+    cursor.execute(
+        """
+        INSERT INTO trades (tanggal, instrumen, sesi, tipe, lot, entry, exit, sl, tp, pnl, pips, catatan)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+        (
+            str(tanggal),
+            instrumen,
+            sesi,
+            tipe,
+            lot,
+            entry,
+            exit_price,
+            sl,
+            tp,
+            round(pnl, 2),
+            round(pips, 1),
+            catatan,
+        ),
+    )
+    conn.commit()
+    st.sidebar.success("Trade berhasil disimpan!")
+    st.rerun()
 
-# Ringkasan Kinerja (Dashboard)
-df = pd.read_sql_query("SELECT * FROM trades", conn)
+# Membaca Data Utama
+df_all = pd.read_sql_query("SELECT * FROM trades", conn)
 
-if not df.empty:
+if not df_all.empty:
+  df_all["tanggal"] = pd.to_datetime(df_all["tanggal"])
+
+  # --- FITUR FILTER PAIR / INSTRUMEN ---
+  st.sidebar.markdown("---")
+  st.sidebar.header("🔍 Filter Dashboard")
+  all_instrumen = df_all["instrumen"].unique().tolist()
+  selected_instrumen = st.sidebar.multiselect(
+      "Pilih Pair / Instrumen", options=all_instrumen, default=all_instrumen
+  )
+
+  # Terapkan Filter ke DataFrame Utama Dashboard
+  df = df_all[df_all["instrumen"].isin(selected_instrumen)]
+
+  if not df.empty:
     total_pnl = df["pnl"].sum()
     win_trades = len(df[df["pnl"] > 0])
     loss_trades = len(df[df["pnl"] < 0])
@@ -156,7 +163,96 @@ if not df.empty:
 
     st.markdown("---")
 
-    # Grafik Performa Equity & Persentase
+    # --- FITUR PNL CALENDAR ---
+    st.subheader("📅 PnL Calendar")
+    col_bln, col_thn = st.columns(2)
+    with col_bln:
+      pilih_bulan = st.selectbox(
+          "Pilih Bulan",
+          list(range(1, 13)),
+          format_func=lambda x: calendar.month_name[x],
+          index=datetime.now().month - 1,
+      )
+    with col_thn:
+      pilih_tahun = st.selectbox(
+          "Pilih Tahun", [2024, 2025, 2026, 2027], index=2
+      )
+
+    # Filter data sesuai bulan dan tahun untuk kalender
+    df_calendar = df[
+        (df["tanggal"].dt.month == pilih_bulan)
+        & (df["tanggal"].dt.year == pilih_tahun)
+    ]
+    daily_summary = (
+        df_calendar.groupby(df_calendar["tanggal"].dt.date)
+        .agg(total_pnl=("pnl", "sum"), jumlah_trade=("id", "count"))
+        .reset_index()
+    )
+
+    calendar_data = {}
+    for _, row in daily_summary.iterrows():
+      calendar_data[row["tanggal"]] = {
+          "pnl": row["total_pnl"],
+          "trades": row["jumlah_trade"],
+      }
+
+    cal = calendar.Calendar(firstweekday=0)
+    month_days = cal.monthdayscalendar(pilih_tahun, pilih_bulan)
+
+    header_cols = st.columns(7)
+    hari_str = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
+    for idx, h in enumerate(hari_str):
+      header_cols[idx].markdown(
+          f"<p align='center'><b>{h}</b></p>", unsafe_allow_html=True
+      )
+
+    for week in month_days:
+      week_cols = st.columns(7)
+      for idx, day in enumerate(week):
+        if day == 0:
+          week_cols[idx].markdown(
+              "<div style='padding: 12px; text-align: center; color:"
+              " gray;'>-</div>",
+              unsafe_allow_html=True,
+          )
+        else:
+          current_date = pd.to_datetime(
+              f"{pilih_tahun}-{pilih_bulan:02d}-{day:02d}"
+          ).date()
+          if current_date in calendar_data:
+            pnl_val = calendar_data[current_date]["pnl"]
+            trd_val = calendar_data[current_date]["trades"]
+            bg_color = (
+                "rgba(0, 255, 128, 0.15)"
+                if pnl_val >= 0
+                else "rgba(255, 75, 75, 0.15)"
+            )
+            text_color = "#00ff80" if pnl_val >= 0 else "#ff4b4b"
+            sign = "+" if pnl_val > 0 else ""
+            week_cols[idx].markdown(
+                f"""
+                            <div style="background-color: {bg_color}; border: 1px solid {text_color}; border-radius: 6px; padding: 6px; text-align: center; min-height: 65px;">
+                                <span style="font-size: 11px; color: #aaa;">{day}</span><br>
+                                <span style="font-size: 12px; font-weight: bold; color: {text_color};">{sign}${pnl_val:,.0f}</span><br>
+                                <span style="font-size: 9px; color: #888;">{trd_val} trade</span>
+                            </div>
+                            """,
+                unsafe_allow_html=True,
+            )
+          else:
+            week_cols[idx].markdown(
+                f"""
+                            <div style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 6px; text-align: center; min-height: 65px;">
+                                <span style="font-size: 11px; color: #555;">{day}</span><br>
+                                <span style="font-size: 10px; color: #444;">-</span>
+                            </div>
+                            """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("---")
+
+    # --- Grafik Performa Equity & Persentase ---
     st.subheader("📊 Grafik Performa Equity & Persentase")
     df_chart = df.sort_values(by="id", ascending=True).reset_index(drop=True)
     df_chart["Trade Ke-"] = df_chart.index + 1
@@ -172,7 +268,7 @@ if not df.empty:
 
     st.markdown("---")
 
-    # Tabel Riwayat Trade & Tombol Download CSV
+    # --- Tabel Riwayat Trade & Tombol Download CSV ---
     st.subheader("📋 Riwayat Trade")
 
     csv_data = df.to_csv(index=False).encode("utf-8")
@@ -188,10 +284,15 @@ if not df.empty:
     )
 
     # Tombol Hapus Data
-    if st.button("Hapus Semua Data"):
+    if st.button("Hapus Semua Data (Sesuai Filter)"):
+        # Jika ingin menghapus semua tanpa filter, ubah query-nya. Ini menghapus data yang sedang tampil.
         cursor.execute("DELETE FROM trades")
         conn.commit()
         st.rerun()
+  else:
+    st.warning(
+        "Tidak ada data untuk instrumen yang dipilih pada filter sidebar."
+    )
 else:
-    st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
-    
+  st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
+      
