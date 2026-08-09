@@ -152,4 +152,138 @@ if not df.empty:
     st.dataframe(sesi_summary, use_container_width=True)
 else:
   st.info("Belum ada data trade yang tersimpan. Silakan input melalui sidebar.")
+    import pandas as pd
+import streamlit as st
+
+# --- 1. SETUP HALAMAN ---
+st.set_page_config(
+    page_title="Pro Trader Journal", page_icon="⚡", layout="wide"
+)
+
+# --- 2. CUSTOM CSS (UI KELAS ATAS) ---
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Background & Warna Utama */
+    .stApp {
+        background-color: #0b0f19;
+        color: #f3f4f6;
+    }
+    
+    /* Styling Card / Container */
+    div.stMetric {
+        background-color: #111827;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid #1f2937;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Tombol Kustom */
+    div.stButton > button {
+        border-radius: 10px;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 10px 20px;
+        transition: 0.3s ease;
+        width: 100%;
+    }
+    
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+    
+    /* Header Tabel */
+    dataframe {
+        border-radius: 12px;
+        border: 1px solid #1f2937;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- 3. HEADER UTAMA ---
+st.markdown(
+    "<h1 style='text-align: center; font-weight: 600; color: #ffffff;'>⚡ PRO"
+    " TRADER JOURNAL</h1>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='text-align: center; color: #9ca3af;'>Sistem pencatatan dan"
+    " evaluasi performa trading berstandar institusional.</p>",
+    unsafe_allow_html=True,
+)
+st.markdown("---")
+
+# --- 4. DASHBOARD STATISTIK (METRIK) ---
+col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+with col_m1:
+  st.metric(label="Total Trades", value="42", delta="+5 minggu ini")
+with col_m2:
+  st.metric(label="Win Rate", value="64.3%", delta="2.1%")
+with col_m3:
+  st.metric(label="Net Profit", value="$1,850.00", delta="$340.00")
+with col_m4:
+  st.metric(label="Profit Factor", value="1.85", delta="Optimal")
+
+st.markdown("---")
+
+# --- 5. INPUT DATA & TABEL RIWAYAT ---
+col_form, col_table = st.columns([1, 2])
+
+# Kolom Kiri: Form Input Trade
+with col_form:
+  st.subheader("📝 Catat Posisi Baru")
+  with st.form("trade_form", clear_on_submit=True):
+    pair = st.selectbox("Trading Pair", ["XAUUSD", "EURUSD", "GBPUSD", "BTCUSD"])
+    action = st.radio("Action", ["BUY", "SELL"], horizontal=True)
+    lot = st.number_input("Lot Size", min_value=0.01, value=0.10, step=0.01)
+    result_pips = st.number_input(
+        "Hasil (Pips / $)", value=0.0, format="%.2f"
+    )
+    setup = st.selectbox(
+        "Strategi Setup", ["Breakout", "Supply & Demand", "Trend Following"]
+    )
+    notes = st.text_area("Catatan Psikologi / Analisis")
+
+    submitted = st.form_submit_button("Simpan ke Jurnal")
+    if submitted:
+      st.success("Trade berhasil dicatat dengan aman!")
+
+# Kolom Kanan: Tabel Riwayat Profesional
+with col_table:
+  st.subheader("📊 Riwayat Transaksi")
+
+  # Data Dummy Contoh Tampilan
+  data_riwayat = {
+      "Tanggal": ["08/08", "08/08", "07/08", "06/08"],
+      "Pair": ["XAUUSD", "EURUSD", "XAUUSD", "GBPUSD"],
+      "Type": ["BUY", "SELL", "BUY", "SELL"],
+      "Lot": [0.20, 0.50, 0.10, 0.30],
+      "Hasil ($)": ["+$240.00", "-$85.00", "+$410.00", "+$150.00"],
+      "Status": ["🟢 WIN", "🔴 LOSS", "🟢 WIN", "🟢 WIN"],
+  }
+  df_riwayat = pd.DataFrame(data_riwayat)
+
+  # Menampilkan tabel dengan gaya rapi
+  st.dataframe(df_riwayat, use_container_width=True, hide_index=True)
+
+# Footer Elegan
+st.markdown("---")
+st.markdown(
+    "<p style='text-align: center; color: #4b5563; font-size: 12px;'>Pro Trader"
+    " Journal Dashboard v2.0 — Secure & Private</p>",
+    unsafe_allow_html=True,
+)
+
     
