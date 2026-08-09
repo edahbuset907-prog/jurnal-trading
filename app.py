@@ -144,4 +144,20 @@ if not df.empty:
         st.rerun()
 else:
     st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
+        # Grafik Pertumbuhan Ekuitas (Equity Curve) yang lebih stabil
+    st.subheader("📊 Grafik Performa (Equity Curve)")
+    
+    # 1. Pastikan kolom tanggal bertipe datetime agar bisa diurutkan
+    df['tanggal'] = pd.to_datetime(df['tanggal'])
+    
+    # 2. Urutkan berdasarkan tanggal
+    df_chart = df.sort_values(by="tanggal").copy()
+    
+    # 3. Hitung kumulatif PnL
+    df_chart["Kumulatif PnL"] = df_chart["pnl"].cumsum()
+    
+    # 4. Tampilkan grafik dengan x sebagai tanggal
+    # Kita gunakan set_index('tanggal') agar grafik membaca waktu di sumbu X
+    st.line_chart(df_chart.set_index("tanggal")["Kumulatif PnL"])
+    
     
