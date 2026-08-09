@@ -133,6 +133,25 @@ try:
         st.info("Belum ada data untuk di-download.")
 except Exception as e:
     st.info("Tombol download akan muncul setelah ada data tersimpan.")
+    # --- RINGKASAN & WIN RATE ---
+df = pd.read_sql_query("SELECT * FROM trades", conn)
+
+if not df.empty:
+    total_pnl = df["pnl"].sum()
+    total_trades = len(df)
+    win_trades = len(df[df["pnl"] > 0])
+    loss_trades = len(df[df["pnl"] < 0])
+    win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
+
+    # Tampilkan Metrik di Atas
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total PnL", f"${total_pnl:,.2f}")
+    col2.metric("Total Trade", total_trades)
+    col3.metric("Win Rate", f"{win_rate:.1f}%")
+    col4.metric("Win / Loss", f"{win_trades} / {loss_trades}")
+    
+    st.markdown("---")
+    
     
     
       
