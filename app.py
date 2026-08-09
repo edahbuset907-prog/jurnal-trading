@@ -194,4 +194,13 @@ if not df.empty:
         st.rerun()
 else:
     st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
+    # Tambahkan ini di bawah bagian df = pd.read_sql_query(...)
+st.sidebar.markdown("---")
+filter_instrumen = st.sidebar.multiselect(
+    "Filter Instrumen", 
+    options=df["instrumen"].unique(),
+    default=df["instrumen"].unique()
+)
+df = df[df["instrumen"].isin(filter_instrumen)]
+
                 
