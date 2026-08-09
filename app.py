@@ -4,19 +4,20 @@ import streamlit as st
 
 # Setup Konfigurasi Halaman
 st.set_page_config(
-    page_title="Jurnal Trading XAUUSD", page_icon="📈", layout="wide"
+    page_title="Jurnal Trading Multi-Instrumen", page_icon="📈", layout="wide"
 )
 
 # Inisialisasi Database SQLite
-conn = sqlite3.connect("journal_xauusd.db", check_same_thread=False)
+conn = sqlite3.connect("journal_trading.db", check_same_thread=False)
 cursor = conn.cursor()
 
-# Cek & Tambah Kolom 'sesi' jika database lama belum memilikinya
+# Cek & Buat Tabel dengan Kolom 'instrumen'
 cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS trades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         tanggal DATE,
+        instrumen TEXT,
         sesi TEXT,
         tipe TEXT,
         lot REAL,
@@ -30,15 +31,22 @@ cursor.execute(
     )
 """
 )
+# Migrasi aman jika tabel lama belum memiliki kolom instrumen/sesi
+try:
+    cursor.execute("ALTER TABLE trades ADD COLUMN instrumen TEXT")
+    conn.commit()
+except sqlite3.OperationalError:
+    pass
+
 try:
     cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
     conn.commit()
 except sqlite3.OperationalError:
     pass
 
-st.title("📈 Jurnal Trading XAUUSD (Emas)")
+st.title("📈 Jurnal Trading (XAUUSD & NASDAQ)")
 
-# Sidebar: Form Input Trade & Modal Saldo Awal
+# Sidebar: Pengaturan Akun & Form Input
 st.sidebar.header("⚙️ Pengaturan Akun")
 modal_awal = st.sidebar.number_input(
     "Modal Awal ($)", min_value=10.0, step=100.0, value=1000.0
@@ -47,14 +55,27 @@ modal_awal = st.sidebar.number_input(
 st.sidebar.header("📝 Input Trade Baru")
 with st.sidebar.form("trade_form", clear_on_submit=True):
     tanggal = st.date_input("Tanggal")
+    instrumen = st.selectbox(
+        "Pilih Instrumen", ["XAUUSD (Gold)", "NASDAQ (US100)"]
+    )
     sesi = st.selectbox(
         "Sesi Trading", ["London", "New York", "Asia", "London / NY Overlap"]
     )
     tipe = st.selectbox("Tipe Posisi", ["BUY", "SELL"])
+
+    # Nilai default lot dan harga disesuaikan berdasarkan instrumen yang dipilih
     lot = st.number_input(
         "Lot Size", min_value=0.01, step=0.01, value=0.10, format="%.2f"
     )
-    entry = st.number_input("Harga Entry", min_value=0.0, step=0.1, value=2000.0)
+
+    # Petunjuk input harga di form
+    st.markdown(
+        "<small><i>*XAUUSD: Entry misal 2000.0 | NASDAQ: Entry misal 18000.0</i></small>",
+        unsafe_allow_html=True,
+    )
+    entry = st.number_input(
+        "Harga Entry", min_value=0.0, step=0.1, value=2000.0
+    )
     exit_price = st.number_input(
         "Harga Exit", min_value=0.0, step=0.1, value=2010.0
     )
@@ -69,20 +90,32 @@ with st.sidebar.form("trade_form", clear_on_submit=True):
     submitted = st.form_submit_button("Simpan Trade")
 
     if submitted:
-        if tipe == "BUY":
-            pips = (exit_price - entry) * 10
-            pnl = (exit_price - entry) * lot * 100
+        # Kalkulasi PnL & Pips berdasarkan instrumen
+        if "XAUUSD" in instrumen:
+            # XAUUSD: 1 Lot = $100 per $1 pergerakan
+            if tipe == "BUY":
+                pips = (exit_price - entry) * 10
+                pnl = (exit_price - entry) * lot * 100
+            else:
+                pips = (entry - exit_price) * 10
+                pnl = (entry - exit_price) * lot * 100
         else:
-            pips = (entry - exit_price) * 10
-            pnl = (entry - exit_price) * lot * 100
+            # NASDAQ (US100): Biasanya pergerakan $1 indeks = $20 per lot (tergantung broker, asumsi standar contract size $20/poin per lot)
+            if tipe == "BUY":
+                pips = exit_price - entry
+                pnl = (exit_price - entry) * lot * 20
+            else:
+                pips = entry - exit_price
+                pnl = (entry - exit_price) * lot * 20
 
         cursor.execute(
             """
-            INSERT INTO trades (tanggal, sesi, tipe, lot, entry, exit, sl, tp, pnl, pips, catatan)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO trades (tanggal, instrumen, sesi, tipe, lot, entry, exit, sl, tp, pnl, pips, catatan)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 tanggal,
+                instrumen,
                 sesi,
                 tipe,
                 lot,
@@ -108,7 +141,6 @@ if not df.empty:
     total_trades = len(df)
     win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
 
-    # Kalkulasi Persentase Pertumbuhan Equity dari Modal Awal
     persen_pertumbuhan = (total_pnl / modal_awal) * 100
 
     # Tampilan Metrik Utama
@@ -124,10 +156,8 @@ if not df.empty:
 
     st.markdown("---")
 
-    # Grafik Pertumbuhan Ekuitas & Persentase Berbasis Urutan Trade
+    # Grafik Performa Equity & Persentase
     st.subheader("📊 Grafik Performa Equity & Persentase")
-
-    # Membuat DataFrame khusus untuk grafik agar urut berdasarkan waktu/id masuk
     df_chart = df.sort_values(by="id", ascending=True).reset_index(drop=True)
     df_chart["Trade Ke-"] = df_chart.index + 1
     df_chart["Kumulatif PnL"] = df_chart["pnl"].cumsum()
@@ -136,7 +166,6 @@ if not df.empty:
         df_chart["Kumulatif PnL"] / modal_awal
     ) * 100
 
-    # Menampilkan grafik menggunakan st.line_chart dengan indeks nomor trade
     st.line_chart(
         df_chart.set_index("Trade Ke-")[["Equity Total", "Persentase (%)"]]
     )
@@ -148,9 +177,9 @@ if not df.empty:
 
     csv_data = df.to_csv(index=False).encode("utf-8")
     st.download_button(
-        label="📥 Download Data ke CSV (Bisa dibuka di Excel)",
+        label="📥 Download Data ke CSV",
         data=csv_data,
-        file_name="jurnal_trading_xauusd.csv",
+        file_name="jurnal_trading_multi.csv",
         mime="text/csv",
     )
 
@@ -165,4 +194,4 @@ if not df.empty:
         st.rerun()
 else:
     st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
-    
+                
