@@ -61,4 +61,54 @@ if not df.empty:
     st.line_chart(df.groupby('tanggal')['pnl'].sum().cumsum())
 else:
     st.write("Belum ada data. Tambahkan trade di sidebar.")
+    import sqlite3
+import pandas as pd
+import streamlit as st
+from datetime import datetime
+
+st.set_page_config(page_title="Jurnal Trading", layout="wide")
+st.title("📈 Jurnal Trading")
+
+# Koneksi Database
+conn = sqlite3.connect("journal_trading.db", check_same_thread=False)
+
+# Sidebar Input (Sama seperti sebelumnya)
+with st.sidebar.form("input_form", clear_on_submit=True):
+    tanggal_input = st.date_input("Tanggal", value=datetime.today())
+    instrumen = st.selectbox("Instrumen", ["XAUUSD", "NASDAQ"])
+    pnl_input = st.number_input("PnL ($)", value=0.0)
+    if st.form_submit_button("Simpan"):
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO trades (tanggal, instrumen, pnl) VALUES (?, ?, ?)", 
+                       (str(tanggal_input), instrumen, pnl_input))
+        conn.commit()
+        st.rerun()
+
+# Membaca Data
+df = pd.read_sql_query("SELECT * FROM trades", conn)
+
+if not df.empty:
+    df['tanggal'] = pd.to_datetime(df['tanggal'])
+    
+    # --- PENGGANTI KALENDER (Tabel Ringkasan Harian) ---
+    st.subheader("📅 Rekap PnL Harian")
+    
+    # Mengelompokkan data berdasarkan tanggal
+    df_daily = df.groupby(df['tanggal'].dt.date)['pnl'].sum().reset_index()
+    df_daily = df_daily.sort_values('tanggal', ascending=False)
+    
+    # Menampilkan dalam bentuk tabel yang mudah dibaca di HP
+    st.dataframe(df_daily, use_container_width=True)
+    
+    # Grafik Pertumbuhan
+    st.subheader("📊 Equity Curve")
+    st.line_chart(df.groupby('tanggal')['pnl'].sum().cumsum())
+
+    if st.button("Hapus Semua Data"):
+        conn.cursor().execute("DELETE FROM trades")
+        conn.commit()
+        st.rerun()
+else:
+    st.info("Belum ada data. Tambahkan trade di sidebar.")
+    
     
