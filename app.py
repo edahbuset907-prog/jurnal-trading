@@ -130,6 +130,23 @@ if not df.empty:
   st.markdown("---")
   st.subheader("📊 Tabel Riwayat Trade")
   st.dataframe(df, use_container_width=True)
+    # --- TOMBOL DOWNLOAD BACKUP EXCEL ---
+st.markdown("---")
+st.subheader("📥 Backup Data Jurnal")
+try:
+  if "df" in locals() and not df.empty:
+    csv_data = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="Download Data ke Excel/CSV",
+        data=csv_data,
+        file_name="jurnal_trading_backup.csv",
+        mime="text/csv",
+    )
+  else:
+    st.info("Belum ada data untuk di-download.")
+except Exception as e:
+  st.info("Tombol download akan muncul setelah ada data tersimpan.")
+    
 
   # Rekap Performa Berdasarkan Sesi Market
   if "sesi" in df.columns:
