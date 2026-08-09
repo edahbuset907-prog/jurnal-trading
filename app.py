@@ -207,6 +207,42 @@ if not df_sesi.empty and "sesi" in df_sesi.columns:
       .reset_index()
   )
   st.dataframe(sesi_summary, use_container_width=True)
+    # --- TAMBAHAN FITUR SESI MARKET DI PALING BAWAH ---
+try:
+  cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
+  conn.commit()
+except:
+  pass
+
+# Ambil ulang data terbaru
+df_sesi = pd.read_sql_query("SELECT * FROM trades", conn)
+
+# Jika kolom sesi belum ada isinya sama sekali di data lama, isi default dulu agar tidak error
+if not df_sesi.empty and "sesi" not in df_sesi.columns:
+  df_sesi["sesi"] = "London Session"
+
+if not df_sesi.empty and "sesi" in df_sesi.columns:
+  # Isi data kosong dengan 'Umum' jika ada baris lama
+  df_sesi["sesi"] = df_sesi["sesi"].fillna("London Session")
+
+  st.markdown("---")
+  st.subheader("🌐 Performa Berdasarkan Sesi Market")
+  sesi_summary = (
+      df_sesi.groupby("sesi")
+      .agg(
+          Total_Trade=("pnl", "count"),
+          Total_PnL=("pnl", "sum"),
+          Win_Rate=(
+              "pnl",
+              lambda x: (
+                  (sum(x > 0) / len(x)) * 100 if len(x) > 0 else 0
+              ),
+          ),
+      )
+      .reset_index()
+  )
+  st.dataframe(sesi_summary, use_container_width=True)
+    
     
     
     
