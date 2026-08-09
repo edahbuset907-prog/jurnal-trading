@@ -228,21 +228,17 @@ except:
 df_sesi = pd.read_sql_query("SELECT * FROM trades", conn)
 
 if not df_sesi.empty:
-  # Jika kolom sesi masih kosong/null, tentukan otomatis berdasarkan jam saat ini
-  if "sesi" not in df_sesi.columns or df_sesi["sesi"].isnull().any():
-    current_hour = datetime.now().hour
-    if 7 <= current_hour < 15:
-      auto_sesi = "Asian Session"
-    elif 15 <= current_hour < 22:
-      auto_sesi = "London Session"
-    else:
-      auto_sesi = "New York Session"
+    # --- REKAP SESI MARKET FINAL ---
+try:
+  cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
+  conn.commit()
+except:
+  pass
 
-    df_sesi["sesi"] = df_sesi["sesi"].fillna(auto_sesi)
-
+df_sesi = pd.read_sql_query("SELECT * FROM trades", conn)
+if not df_sesi.empty and "sesi" in df_sesi.columns:
   st.markdown("---")
   st.subheader("🌐 Performa Berdasarkan Sesi Market")
-
   sesi_summary = (
       df_sesi.groupby("sesi")
       .agg(
@@ -258,6 +254,8 @@ if not df_sesi.empty:
       .reset_index()
   )
   st.dataframe(sesi_summary, use_container_width=True)
+    sesi = st.sidebar.selectbox(
+    "Sesi Market", ["Asian Session", "London Session", "New York Session"]
+    )
     
     
-   
