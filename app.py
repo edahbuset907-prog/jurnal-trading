@@ -152,4 +152,92 @@ if not df.empty:
     st.dataframe(sesi_summary, use_container_width=True)
 else:
   st.info("Belum ada data trade yang tersimpan. Silakan input melalui sidebar.")
-    
+    import pandas as pd
+import streamlit as st
+
+# --- 1. SETUP HALAMAN ---
+st.set_page_config(
+    page_title="Jurnal Trading XAUUSD", page_icon="📈", layout="wide"
+)
+
+# --- 2. INISIALISASI SESSION STATE (DENGAN DATA AWAL BIAR TOMBOL BACKUP MUNCUL) ---
+if "riwayat_trading" not in st.session_state:
+  st.session_state.riwayat_trading = [
+      {
+          "Tanggal": "08/08",
+          "Pair": "XAUUSD",
+          "Type": "BUY",
+          "Lot": 0.20,
+          "Hasil ($)": 240.0,
+          "Status": "WIN",
+      },
+      {
+          "Tanggal": "08/08",
+          "Pair": "XAUUSD",
+          "Type": "SELL",
+          "Lot": 0.50,
+          "Hasil ($)": -85.0,
+          "Status": "LOSS",
+      },
+  ]
+
+# --- 3. JUDUL UTAMA ---
+st.markdown(
+    "<h1>📈 Jurnal Trading XAUUSD (Emas)</h1>", unsafe_allow_html=True
+)
+st.markdown("---")
+
+# --- 4. SIDEBAR UNTUK INPUT DATA ---
+with st.sidebar:
+  st.header("📝 Input Trade Baru")
+  with st.form("form_sidebar", clear_on_submit=True):
+    tanggal = st.text_input("Tanggal", value="09/08")
+    action = st.radio("Action", ["BUY", "SELL"], horizontal=True)
+    lot = st.number_input("Lot Size", min_value=0.01, value=0.10, step=0.01)
+    hasil = st.number_input(
+        "Hasil ($ / Pips)", value=0.0, step=1.0, format="%.2f"
+    )
+    status = st.selectbox("Status", ["WIN", "LOSS"])
+
+    submitted = st.form_submit_button("Simpan Trade")
+    if submitted:
+      data_baru = {
+          "Tanggal": tanggal,
+          "Pair": "XAUUSD",
+          "Type": action,
+          "Lot": lot,
+          "Hasil ($)": hasil,
+          "Status": status,
+      }
+      st.session_state.riwayat_trading.insert(0, data_baru)
+      st.success("Berhasil disimpan!")
+      st.rerun()
+
+# --- 5. TAMPILAN UTAMA & TABEL ---
+if st.session_state.riwayat_trading:
+  df = pd.DataFrame(st.session_state.riwayat_trading)
+  st.dataframe(df, use_container_width=True, hide_index=True)
+else:
+  st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
+
+st.markdown("---")
+
+# --- 6. BAGIAN BACKUP DATA JURNAL (PASTI MUNCUL) ---
+st.markdown("### 📥 Backup Data Jurnal")
+
+if st.session_state.riwayat_trading:
+  df_backup = pd.DataFrame(st.session_state.riwayat_trading)
+  csv_data = df_backup.to_csv(index=False).encode("utf-8")
+  st.download_button(
+      label="⬇️ Download Backup CSV",
+      data=csv_data,
+      file_name="backup_jurnal_xauusd.csv",
+      mime="text/csv",
+  )
+else:
+  st.markdown(
+      "<div style='padding: 15px; background-color: #111827; border-radius:"
+      " 8px; color: #9ca3af;'>Belum ada data untuk di-download.</div>",
+      unsafe_allow_html=True,
+)
+
