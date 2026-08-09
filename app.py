@@ -38,7 +38,12 @@ except sqlite3.OperationalError:
 
 st.title("📈 Jurnal Trading XAUUSD (Emas)")
 
-# Sidebar: Form Input Trade
+# Sidebar: Form Input Trade & Modal Saldo Awal
+st.sidebar.header("⚙️ Pengaturan Akun")
+modal_awal = st.sidebar.number_input(
+    "Modal Awal ($)", min_value=10.0, step=100.0, value=1000.0
+)
+
 st.sidebar.header("📝 Input Trade Baru")
 with st.sidebar.form("trade_form", clear_on_submit=True):
     tanggal = st.date_input("Tanggal")
@@ -103,27 +108,44 @@ if not df.empty:
     total_trades = len(df)
     win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
 
+    # Kalkulasi Persentase Pertumbuhan Equity dari Modal Awal
+    persen_pertumbuhan = (total_pnl / modal_awal) * 100
+
     # Tampilan Metrik Utama
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total PnL", f"${total_pnl:,.2f}")
+    col1.metric(
+        "Total PnL",
+        f"${total_pnl:,.2f}",
+        delta=f"{persen_pertumbuhan:+.2f}% dari Modal",
+    )
     col2.metric("Total Trade", total_trades)
     col3.metric("Win Rate", f"{win_rate:.1f}%")
     col4.metric("Win / Loss", f"{win_trades} / {loss_trades}")
 
     st.markdown("---")
 
-    # Grafik Pertumbuhan Ekuitas (Equity Curve)
-    st.subheader("📊 Grafik Performa (Equity Curve)")
-    df_sorted = df.sort_values(by="id", ascending=True).copy()
-    df_sorted["Kumulatif PnL"] = df_sorted["pnl"].cumsum()
-    st.line_chart(df_sorted.set_index("id")["Kumulatif PnL"])
+    # Grafik Pertumbuhan Ekuitas & Persentase Berbasis Urutan Trade
+    st.subheader("📊 Grafik Performa Equity & Persentase")
+
+    # Membuat DataFrame khusus untuk grafik agar urut berdasarkan waktu/id masuk
+    df_chart = df.sort_values(by="id", ascending=True).reset_index(drop=True)
+    df_chart["Trade Ke-"] = df_chart.index + 1
+    df_chart["Kumulatif PnL"] = df_chart["pnl"].cumsum()
+    df_chart["Equity Total"] = modal_awal + df_chart["Kumulatif PnL"]
+    df_chart["Persentase (%)"] = (
+        df_chart["Kumulatif PnL"] / modal_awal
+    ) * 100
+
+    # Menampilkan grafik menggunakan st.line_chart dengan indeks nomor trade
+    st.line_chart(
+        df_chart.set_index("Trade Ke-")[["Equity Total", "Persentase (%)"]]
+    )
 
     st.markdown("---")
 
     # Tabel Riwayat Trade & Tombol Download CSV
     st.subheader("📋 Riwayat Trade")
 
-    # Menggunakan CSV agar tidak butuh modul openpyxl tambahan
     csv_data = df.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="📥 Download Data ke CSV (Bisa dibuka di Excel)",
@@ -132,7 +154,6 @@ if not df.empty:
         mime="text/csv",
     )
 
-    # Menampilkan Tabel Data
     st.dataframe(
         df.sort_values(by="id", ascending=False), use_container_width=True
     )
@@ -144,20 +165,4 @@ if not df.empty:
         st.rerun()
 else:
     st.info("Belum ada data trade. Silakan masukkan data di sidebar kiri.")
-        # Grafik Pertumbuhan Ekuitas (Equity Curve) yang lebih stabil
-    st.subheader("📊 Grafik Performa (Equity Curve)")
-    
-    # 1. Pastikan kolom tanggal bertipe datetime agar bisa diurutkan
-    df['tanggal'] = pd.to_datetime(df['tanggal'])
-    
-    # 2. Urutkan berdasarkan tanggal
-    df_chart = df.sort_values(by="tanggal").copy()
-    
-    # 3. Hitung kumulatif PnL
-    df_chart["Kumulatif PnL"] = df_chart["pnl"].cumsum()
-    
-    # 4. Tampilkan grafik dengan x sebagai tanggal
-    # Kita gunakan set_index('tanggal') agar grafik membaca waktu di sumbu X
-    st.line_chart(df_chart.set_index("tanggal")["Kumulatif PnL"])
-    
     
