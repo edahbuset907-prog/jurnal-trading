@@ -242,6 +242,13 @@ if not df_sesi.empty and "sesi" in df_sesi.columns:
       .reset_index()
   )
   st.dataframe(sesi_summary, use_container_width=True)
+    # --- UPDATE SQL DATABASE ---
+try:
+  cursor.execute("ALTER TABLE trades ADD COLUMN sesi TEXT")
+  conn.commit()
+except Exception as e:
+  pass
+    
     
     
     
